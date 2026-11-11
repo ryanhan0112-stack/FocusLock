@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="ko" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusLock - 방해금지 및 집중 관리 앱</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(229, 231, 235, 0.5);
+        }
+        .dark .glass-card {
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    </style>
+</head>
+<body class="h-full bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 flex flex-col">
+
+    <!-- Header Navigation -->
+    <header class="w-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-shield-halved text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg tracking-tight leading-none">FocusLock</h1>
+                    <span class="text-xs text-slate-500 dark:text-slate-400">방해금지 & 집중 관리</span>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <!-- Theme Toggle -->
+                <button id="themeToggle" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition">
+                    <i class="fa-solid fa-moon dark:hidden"></i>
+                    <i class="fa-solid fa-sun hidden dark:block"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-6 pb-24 overflow-y-auto">
+        
+        <!-- Blocker Service Master Switch Banner -->
+        <div class="mb-6 p-5 rounded-2xl glass-card shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 border-l-4 border-l-indigo-600">
+            <div class="flex items-center space-x-4">
+                <div id="serviceIconBox" class="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-2xl transition-all">
+                    <i class="fa-solid fa-power-off"></i>
+                </div>
+                <div>
+                    <h2 class="font-bold text-base">방해 차단 접근성 서비스</h2>
+                    <p id="serviceStatusText" class="text-xs text-slate-500 dark:text-slate-400">현재 차단 서비스가 꺼져 있습니다. 켜면 선택한 앱이 차단됩니다.</p>
+                </div>
+            </div>
+            <!-- Toggle Switch -->
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="serviceMasterSwitch" class="sr-only peer">
+                <div class="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600 shadow-inner"></div>
+            </label>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="flex space-x-2 border-b border-slate-200 dark:border-slate-800 mb-6 overflow-x-auto pb-1">
+            <button onclick="switchTab('timer')" id="tabBtn-timer" class="tab-btn px-4 py-2.5 font-semibold text-sm rounded-xl transition flex items-center space-x-2 bg-indigo-600 text-white shadow-md shadow-indigo-500/20">
+                <i class="fa-solid fa-stopwatch"></i>
+                <span>집중 타이머</span>
+            </button>
+            <button onclick="switchTab('apps')" id="tabBtn-apps" class="tab-btn px-4 py-2.5 font-semibold text-sm rounded-xl transition flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i class="fa-solid fa-ban"></i>
+                <span>차단 앱 관리</span>
+            </button>
+            <button onclick="switchTab('stats')" id="tabBtn-stats" class="tab-btn px-4 py-2.5 font-semibold text-sm rounded-xl transition flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>통계 및 로그</span>
+            </button>
+        </div>
+
+        <!-- Tab 1: Timer -->
+        <div id="tab-timer" class="tab-content space-y-6">
+            <div class="glass-card rounded-3xl p-6 sm:p-10 shadow-sm text-center relative overflow-hidden">
+                <!-- Strict Lock Warning Badge -->
+                <div id="strictLockBadge" class="hidden mb-4 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-semibold flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-lock text-amber-500"></i>
+                    <span>강제 잠금 모드 활성화 중: 종료 시까지 멈출 수 없습니다!</span>
+                </div>
+
+                <!-- Mode Badge -->
+                <div class="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 mb-6">
+                    <span id="timerModeDot" class="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
+                    <span id="timerModeLabel">집중 모드</span>
+                </div>
+
+                <!-- Circular Timer Display -->
+                <div class="relative w-64 h-64 sm:w-72 sm:h-72 mx-auto flex items-center justify-center mb-8">
+                    <!-- SVG Progress Circle -->
+                    <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="44" stroke="currentColor" stroke-width="6" class="text-slate-100 dark:text-slate-800 fill-none"></circle>
+                        <circle id="timerProgressRing" cx="50" cy="50" r="44" stroke="currentColor" stroke-width="6" stroke-dasharray="276.46" stroke-dashoffset="0" stroke-linecap="round" class="text-indigo-600 fill-none transition-all duration-1000"></circle>
+                    </svg>
+                    <div class="absolute flex flex-col items-center justify-center">
+                        <span id="timerDisplay" class="text-4xl sm:text-5xl font-extrabold tracking-tight">25:00</span>
+                        <span id="timerSubtext" class="text-xs text-slate-400 mt-1">완벽한 몰입 시간</span>
+                    </div>
+                </div>
+
+                <!-- Timer Controls -->
+                <div class="flex items-center justify-center space-x-4">
+                    <button id="timerStartBtn" onclick="toggleTimer()" class="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-500/30 transition flex items-center space-x-2">
+                        <i id="timerStartIcon" class="fa-solid fa-play"></i>
+                        <span id="timerStartText">시작하기</span>
+                    </button>
+                    <!-- Strict Lock Emergency Reset (Disabled standard reset when running) -->
+                    <button id="timerResetBtn" onclick="requestEmergencyUnlock()" class="w-12 h-12 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl flex items-center justify-center text-slate-600 dark:text-slate-300 transition" title="초기화">
+                        <i id="timerResetIcon" class="fa-solid fa-rotate-right"></i>
+                    </button>
+                </div>
+
+                <!-- Strict Lock Mode Checkbox Toggle -->
+                <div class="mt-6 flex items-center justify-center space-x-2">
+                    <input type="checkbox" id="strictLockToggle" checked class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-700">
+                    <label for="strictLockToggle" class="text-xs font-medium text-slate-600 dark:text-slate-300 select-none cursor-pointer flex items-center space-x-1">
+                        <i class="fa-solid fa-shield-halved text-indigo-500"></i>
+                        <span>집중 시간 중 강제 잠금 (중도 해제 불가)</span>
+                    </label>
+                </div>
+
+                <!-- Mode Selector Quick Buttons -->
+                <div class="grid grid-cols-3 gap-3 max-w-md mx-auto mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
+                    <button onclick="setTimerPreset(25, 'focus')" class="preset-btn p-3 rounded-xl border border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 font-semibold text-xs transition">
+                        집중 25분
+                    </button>
+                    <button onclick="setTimerPreset(50, 'focus')" class="preset-btn p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold text-xs transition">
+                        딥워크 50분
+                    </button>
+                    <button onclick="setTimerPreset(5, 'break')" class="preset-btn p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold text-xs transition">
+                        휴식 5분
+                    </button>
+                </div>
+
+                <!-- Custom Time Setup -->
+                <div class="mt-6 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 max-w-md mx-auto">
+                    <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3 flex items-center justify-center space-x-1">
+                        <i class="fa-solid fa-clock font-normal"></i>
+                        <span>사용자 지정 시간 설정</span>
+                    </div>
+                    <div class="flex items-center justify-center space-x-3">
+                        <div class="flex items-center space-x-1">
+                            <input type="number" id="customHours" min="0" max="23" value="0" placeholder="0" class="w-16 py-2 px-2 text-center text-sm font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:border-indigo-500">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">시간</span>
+                        </div>
+                        <span class="text-slate-400 font-bold">:</span>
+                        <div class="flex items-center space-x-1">
+                            <input type="number" id="customMinutes" min="0" max="59" value="30" placeholder="30" class="w-16 py-2 px-2 text-center text-sm font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:border-indigo-500">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">분</span>
+                        </div>
+                        <button onclick="applyCustomTime()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-md transition">
+                            설정 적용
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Apps Blocker -->
+        <div id="tab-apps" class="tab-content hidden space-y-4">
+            <div class="glass-card rounded-3xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="font-bold text-base">차단 대상 및 부분 차단 규칙 설정</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">전체 차단 또는 피드·릴스만 차단하고 DM(메시지)만 허용할 수 있습니다.</p>
+                    </div>
+                    <button onclick="openAddAppModal()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-500/20 transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>앱 추가</span>
+                    </button>
+                </div>
+
+                <!-- App Search Bar -->
+                <div class="relative mb-4">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-search text-xs"></i>
+                    </span>
+                    <input type="text" id="appSearchInput" oninput="filterApps()" placeholder="차단할 앱 검색..." class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:border-indigo-500 transition">
+                </div>
+
+                <!-- App List -->
+                <div id="appListContainer" class="space-y-3 max-h-[480px] overflow-y-auto pr-1">
+                    <!-- Dynamically rendered apps -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Stats & Logs -->
+        <div id="tab-stats" class="tab-content hidden space-y-6">
+            <!-- Stats Summary Cards -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="glass-card rounded-2xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">오늘 총 집중 시간</span>
+                        <div class="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-extrabold" id="statTotalFocus">1시간 45분</div>
+                    <span class="text-[10px] text-emerald-500 font-semibold mt-1 inline-block">
+                        <i class="fa-solid fa-arrow-trend-up"></i> 어제보다 +25분
+                    </span>
+                </div>
+                <div class="glass-card rounded-2xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">방해 차단 횟수</span>
+                        <div class="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-shield-cat"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-extrabold" id="statBlockCount">14회</div>
+                    <span class="text-[10px] text-rose-500 font-semibold mt-1 inline-block">
+                        <i class="fa-solid fa-ban"></i> 유튜브 8회 차단됨
+                    </span>
+                </div>
+            </div>
+
+            <!-- Block Logs Activity Feed -->
+            <div class="glass-card rounded-3xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-base">차단 및 집중 로그</h3>
+                    <button onclick="clearLogs()" class="text-xs text-slate-400 hover:text-rose-500 transition">로그 초기화</button>
+                </div>
+                <div id="logListContainer" class="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                    <!-- Dynamically rendered logs -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Custom Modal for Adding App -->
+    <div id="addAppModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-card rounded-3xl max-w-md w-full p-6 shadow-2xl transform transition-all">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-lg">새로운 차단 앱 등록</h3>
+                <button onclick="closeAddAppModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-700">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">앱 이름</label>
+                    <input type="text" id="newAppName" placeholder="예: 넷플릭스, 틱톡" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">패키지명 (또는 카테고리)</label>
+                    <input type="text" id="newAppPkg" placeholder="예: com.netflix.mediaclient" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">아이콘 이모지 또는 Fa 아이콘</label>
+                    <input type="text" id="newAppIcon" placeholder="예: 🎬 또는 fa-film" value="fa-mobile-screen" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:border-indigo-500">
+                </div>
+                <div class="flex space-x-3 pt-2">
+                    <button onclick="closeAddAppModal()" class="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold text-sm hover:bg-slate-200 transition">취소</button>
+                    <button onclick="addNewApp()" class="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-lg shadow-indigo-500/20 transition">추가하기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast / Custom Message Box -->
+    <div id="toastNotification" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 border border-slate-800">
+            <div id="toastIcon" class="text-indigo-400 text-lg"><i class="fa-solid fa-circle-check"></i></div>
+            <span id="toastMessage" class="text-sm font-medium">설정이 저장되었습니다.</span>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // State Management
+        let state = {
+            isServiceActive: false,
+            timer: {
+                totalSeconds: 25 * 60,
+                remainingSeconds: 25 * 60,
+                isRunning: false,
+                strictLock: true,
+                mode: 'focus', // 'focus' or 'break'
+                timerId: null
+            },
+            apps: [
+                { 
+                    id: 2, 
+                    name: '인스타그램', 
+                    pkg: 'com.instagram.android', 
+                    icon: 'fa-instagram', 
+                    blocked: true, 
+                    category: '소셜미디어',
+                    granularRule: 'dm_only', // 'full', 'dm_only'
+                    granularOptions: [
+                        { id: 'full', label: '전체 앱 차단' },
+                        { id: 'dm_only', label: '피드/릴스 차단 (DM 메시지만 허용)' }
+                    ]
+                },
+                { 
+                    id: 1, 
+                    name: '유튜브', 
+                    pkg: 'com.google.android.youtube', 
+                    icon: 'fa-youtube', 
+                    blocked: true, 
+                    category: '동영상',
+                    granularRule: 'shorts_feed_block', // 'full', 'shorts_feed_block'
+                    granularOptions: [
+                        { id: 'full', label: '전체 앱 차단' },
+                        { id: 'shorts_feed_block', label: '쇼츠/메인 피드 차단 (보관함만 가능)' }
+                    ]
+                },
+                { id: 3, name: '틱톡', pkg: 'com.zhiliaoapp.musically', icon: 'fa-tiktok', blocked: true, category: '소셜미디어', granularRule: 'full' },
+                { id: 4, name: '리그 오브 레전드: 와일드리프트', pkg: 'com.riotgames.league.wildrift', icon: 'fa-gamepad', blocked: true, category: '게임', granularRule: 'full' },
+                { id: 5, name: '넷플릭스', pkg: 'com.netflix.mediaclient', icon: 'fa-film', blocked: false, category: '동영상', granularRule: 'full' },
+                { id: 6, name: '카카오톡', pkg: 'com.kakao.talk', icon: 'fa-comment', blocked: false, category: '메신저', granularRule: 'full' }
+            ],
+            logs: [
+                { id: 1, type: 'block', title: '인스타그램 피드 접근 차단', time: '10분 전', detail: 'DM 메시지 외 피드/릴스 접근 감지 및 자동 차단' },
+                { id: 2, type: 'focus', title: '집중 모드 25분 완료', time: '1시간 전', detail: '강제 잠금 모드로 성공적으로 몰입하였습니다.' }
+            ],
+            stats: {
+                totalMinutes: 105,
+                blockCount: 14
+            }
+        };
+
+        // DOM Elements
+        const serviceMasterSwitch = document.getElementById('serviceMasterSwitch');
+        const serviceStatusText = document.getElementById('serviceStatusText');
+        const serviceIconBox = document.getElementById('serviceIconBox');
+        
+        // Init App on Load
+        window.onload = function() {
+            if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+            }
+
+            renderApps();
+            renderLogs();
+            updateTimerDisplay();
+            updateStatsUI();
+
+            serviceMasterSwitch.addEventListener('change', function() {
+                state.isServiceActive = this.checked;
+                updateServiceUI();
+                if (state.isServiceActive) {
+                    showToast('방해 차단 서비스가 활성화되었습니다.');
+                    addLog('service', '방해 차단 서비스 켜짐', '백그라운드에서 앱 실행 감시 중', 'indigo');
+                } else {
+                    showToast('방해 차단 서비스가 꺼졌습니다.');
+                    addLog('service', '방해 차단 서비스 꺼짐', '사용자에 의해 비활성화됨', 'slate');
+                }
+            });
+
+            document.getElementById('themeToggle').addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+            });
+
+            document.getElementById('strictLockToggle').addEventListener('change', function() {
+                state.timer.strictLock = this.checked;
+            });
+        };
+
+        // Service UI Updater
+        function updateServiceUI() {
+            if (state.isServiceActive) {
+                serviceIconBox.className = 'w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-2xl transition-all shadow-lg shadow-emerald-500/20';
+                serviceStatusText.textContent = '방해 차단 접근성 서비스가 활성화되어 있습니다. 선택된 앱 실행을 차단합니다.';
+                serviceStatusText.className = 'text-xs text-emerald-600 dark:text-emerald-400 font-medium';
+            } else {
+                serviceIconBox.className = 'w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-2xl transition-all';
+                serviceStatusText.textContent = '현재 차단 서비스가 꺼져 있습니다. 켜면 선택한 앱이 차단됩니다.';
+                serviceStatusText.className = 'text-xs text-slate-500 dark:text-slate-400';
+            }
+        }
+
+        // Tab Switcher
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = 'tab-btn px-4 py-2.5 font-semibold text-sm rounded-xl transition flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800';
+            });
+            const activeBtn = document.getElementById(`tabBtn-${tabName}`);
+            activeBtn.className = 'tab-btn px-4 py-2.5 font-semibold text-sm rounded-xl transition flex items-center space-x-2 bg-indigo-600 text-white shadow-md shadow-indigo-500/20';
+        }
+
+        // Timer Logic with Strict Lock Enforcement
+        function toggleTimer() {
+            const isStrict = document.getElementById('strictLockToggle').checked;
+            state.timer.strictLock = isStrict;
+
+            if (!state.timer.isRunning) {
+                // Start Timer
+                state.timer.isRunning = true;
+                document.getElementById('timerStartIcon').className = 'fa-solid fa-pause';
+                document.getElementById('timerStartText').textContent = isStrict ? '강제 잠금 실행 중' : '일시정지';
+                
+                if (isStrict) {
+                    document.getElementById('timerStartBtn').classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                    document.getElementById('timerStartBtn').classList.add('bg-amber-600', 'hover:bg-amber-600', 'cursor-not-allowed');
+                    document.getElementById('strictLockBadge').classList.remove('hidden');
+                    document.getElementById('strictLockToggle').disabled = true;
+                    document.getElementById('timerResetIcon').className = 'fa-solid fa-triangle-exclamation text-amber-500';
+                }
+
+                // Enable service automatically on lock start
+                if (!state.isServiceActive) {
+                    state.isServiceActive = true;
+                    serviceMasterSwitch.checked = true;
+                    updateServiceUI();
+                }
+
+                showToast(isStrict ? '🔒 강제 잠금 집중 모드가 시작되었습니다.' : '▶ 집중 타이머가 시작되었습니다.');
+
+                state.timer.timerId = setInterval(() => {
+                    if (state.timer.remainingSeconds > 0) {
+                        state.timer.remainingSeconds--;
+                        updateTimerDisplay();
+                    } else {
+                        clearInterval(state.timer.timerId);
+                        state.timer.isRunning = false;
+                        showToast('🎉 집중 시간이 종료되었습니다!');
+                        addLog('focus', '집중 완료', `${Math.round(state.timer.totalSeconds / 60)}분 집중을 달성했습니다.`, 'emerald');
+                        state.stats.totalMinutes += Math.round(state.timer.totalSeconds / 60);
+                        updateStatsUI();
+                        resetTimerState();
+                    }
+                }, 1000);
+            } else {
+                if (state.timer.strictLock) {
+                    showToast('⚠️ 강제 잠금 모드 중에는 일시정지할 수 없습니다!');
+                    return;
+                }
+                // Pause if not strict
+                clearInterval(state.timer.timerId);
+                state.timer.isRunning = false;
+                document.getElementById('timerStartIcon').className = 'fa-solid fa-play';
+                document.getElementById('timerStartText').textContent = '시작하기';
+            }
+        }
+
+        function requestEmergencyUnlock() {
+            if (!state.timer.isRunning) {
+                resetTimer();
+                return;
+            }
+
+            if (state.timer.strictLock) {
+                const confirmed = window.confirm('⚠️ 강제 잠금을 비상 해제하시겠습니까?\n강제 해제 시 집중 기록에 감점이 반영됩니다.');
+                if (confirmed) {
+                    clearInterval(state.timer.timerId);
+                    state.timer.isRunning = false;
+                    addLog('block', '강제 잠금 비상 해제', '타이머를 완료하지 못하고 중도 포기했습니다.', 'rose');
+                    showToast('강제 잠금이 비상 해제되었습니다.');
+                    resetTimerState();
+                }
+            } else {
+                resetTimer();
+            }
+        }
+
+        function resetTimerState() {
+            document.getElementById('timerStartIcon').className = 'fa-solid fa-play';
+            document.getElementById('timerStartText').textContent = '시작하기';
+            document.getElementById('timerStartBtn').classList.remove('bg-amber-600', 'hover:bg-amber-600', 'cursor-not-allowed');
+            document.getElementById('timerStartBtn').classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+            document.getElementById('strictLockBadge').classList.add('hidden');
+            document.getElementById('strictLockToggle').disabled = false;
+            document.getElementById('timerResetIcon').className = 'fa-solid fa-rotate-right';
+        }
+
+        function resetTimer() {
+            if (state.timer.isRunning && state.timer.strictLock) {
+                showToast('⚠️ 강제 잠금 모드에서는 비상 해제 버튼을 사용해야 합니다.');
+                return;
+            }
+            clearInterval(state.timer.timerId);
+            state.timer.isRunning = false;
+            state.timer.remainingSeconds = state.timer.totalSeconds;
+            resetTimerState();
+            updateTimerDisplay();
+        }
+
+        function setTimerPreset(minutes, mode) {
+            if (state.timer.isRunning && state.timer.strictLock) {
+                showToast('⚠️ 강제 잠금 실행 중에는 프리셋을 변경할 수 없습니다.');
+                return;
+            }
+            if (state.timer.isRunning) {
+                clearInterval(state.timer.timerId);
+                state.timer.isRunning = false;
+                resetTimerState();
+            }
+            state.timer.mode = mode;
+            state.timer.totalSeconds = minutes * 60;
+            state.timer.remainingSeconds = minutes * 60;
+
+            const modeLabel = document.getElementById('timerModeLabel');
+            const modeDot = document.getElementById('timerModeDot');
+            const subtext = document.getElementById('timerSubtext');
+
+            if (mode === 'focus') {
+                modeLabel.textContent = '집중 모드';
+                modeDot.className = 'w-2 h-2 rounded-full bg-indigo-600 animate-pulse';
+                subtext.textContent = '완벽한 몰입 시간';
+            } else {
+                modeLabel.textContent = '휴식 모드';
+                modeDot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+                subtext.textContent = '재충전을 위한 휴식 시간';
+            }
+
+            updateTimerDisplay();
+        }
+
+        function applyCustomTime() {
+            if (state.timer.isRunning && state.timer.strictLock) {
+                showToast('⚠️ 강제 잠금 실행 중에는 커스텀 시간을 적용할 수 없습니다.');
+                return;
+            }
+            const hrs = parseInt(document.getElementById('customHours').value, 10) || 0;
+            const mins = parseInt(document.getElementById('customMinutes').value, 10) || 0;
+
+            if (hrs === 0 && mins === 0) {
+                showToast('최소 1분 이상 설정해주세요.');
+                return;
+            }
+
+            const totalSecs = (hrs * 3600) + (mins * 60);
+
+            if (state.timer.isRunning) {
+                clearInterval(state.timer.timerId);
+                state.timer.isRunning = false;
+                resetTimerState();
+            }
+
+            state.timer.mode = 'focus';
+            state.timer.totalSeconds = totalSecs;
+            state.timer.remainingSeconds = totalSecs;
+
+            document.getElementById('timerModeLabel').textContent = '사용자 지정 집중 모드';
+            document.getElementById('timerModeDot').className = 'w-2 h-2 rounded-full bg-indigo-600 animate-pulse';
+            document.getElementById('timerSubtext').textContent = `${hrs > 0 ? hrs + '시간 ' : ''}${mins}분 직접 설정 집중`;
+
+            updateTimerDisplay();
+            showToast(`시간이 설정되었습니다 (${hrs > 0 ? hrs + '시간 ' : ''}${mins}분)`);
+        }
+
+        function updateTimerDisplay() {
+            const hours = Math.floor(state.timer.remainingSeconds / 3600);
+            const minutes = Math.floor((state.timer.remainingSeconds % 3600) / 60);
+            const seconds = state.timer.remainingSeconds % 60;
+            
+            let formatted = '';
+            if (hours > 0) {
+                formatted = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            } else {
+                formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+
+            document.getElementById('timerDisplay').textContent = formatted;
+
+            const ring = document.getElementById('timerProgressRing');
+            const circumference = 276.46;
+            const progress = state.timer.remainingSeconds / state.timer.totalSeconds;
+            const offset = circumference - (progress * circumference);
+            ring.style.strokeDashoffset = offset;
+        }
+
+        // App Blocker Management with Granular App Rule Controls (e.g. IG DM only)
+        function renderApps(filteredApps = null) {
+            const container = document.getElementById('appListContainer');
+            const list = filteredApps || state.apps;
+            
+            if (list.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs">검색된 앱이 없습니다.</div>`;
+                return;
+            }
+
+            container.innerHTML = list.map(app => `
+                <div class="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 hover:border-indigo-500/30 transition space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3.5">
+                            <div class="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-lg border border-slate-100 dark:border-slate-700">
+                                <i class="fa-solid ${app.icon}"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-sm">${app.name}</h4>
+                                <p class="text-[11px] text-slate-400 font-mono">${app.pkg} • <span class="text-indigo-500">${app.category}</span></p>
+                            </div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" ${app.blocked ? 'checked' : ''} onchange="toggleAppBlock(${app.id})" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </label>
+                    </div>
+
+                    ${app.blocked && app.granularOptions ? `
+                        <div class="pt-2 border-t border-slate-200/50 dark:border-slate-800 flex items-center justify-between text-xs">
+                            <span class="text-slate-500 font-medium flex items-center space-x-1">
+                                <i class="fa-solid fa-sliders text-indigo-500"></i>
+                                <span>차단 범위 상세 설정:</span>
+                            </span>
+                            <select onchange="updateGranularRule(${app.id}, this.value)" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 focus:outline-none">
+                                ${app.granularOptions.map(opt => `
+                                    <option value="${opt.id}" ${app.granularRule === opt.id ? 'selected' : ''}>${opt.label}</option>
+                                `).join('')}
+                            </select>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function updateGranularRule(appId, ruleId) {
+            const app = state.apps.find(a => a.id === appId);
+            if (app) {
+                app.granularRule = ruleId;
+                const ruleObj = app.granularOptions.find(o => o.id === ruleId);
+                showToast(`'${app.name}' 규칙: ${ruleObj.label}`);
+                addLog('service', `${app.name} 차단 규칙 변경`, ruleObj.label, 'indigo');
+            }
+        }
+
+        function toggleAppBlock(id) {
+            const app = state.apps.find(a => a.id === id);
+            if (app) {
+                app.blocked = !app.blocked;
+                showToast(`'${app.name}' 차단 상태가 변경되었습니다.`);
+                if (app.blocked) {
+                    state.stats.blockCount++;
+                    addLog('block', `${app.name} 차단 설정됨`, '집중 모드 중 실행 차단 대상에 포함됨', 'rose');
+                }
+                renderApps();
+                updateStatsUI();
+            }
+        }
+
+        function filterApps() {
+            const query = document.getElementById('appSearchInput').value.toLowerCase();
+            const filtered = state.apps.filter(a => a.name.toLowerCase().includes(query) || a.pkg.toLowerCase().includes(query));
+            renderApps(filtered);
+        }
+
+        // Modal Controls
+        function openAddAppModal() {
+            document.getElementById('addAppModal').classList.remove('hidden');
+        }
+        function closeAddAppModal() {
+            document.getElementById('addAppModal').classList.add('hidden');
+            document.getElementById('newAppName').value = '';
+            document.getElementById('newAppPkg').value = '';
+        }
+
+        function addNewApp() {
+            const name = document.getElementById('newAppName').value.trim();
+            const pkg = document.getElementById('newAppPkg').value.trim();
+            const icon = document.getElementById('newAppIcon').value.trim() || 'fa-mobile-screen';
+
+            if (!name || !pkg) {
+                showToast('앱 이름과 패키지명을 모두 입력해주세요.');
+                return;
+            }
+
+            const newApp = {
+                id: Date.now(),
+                name: name,
+                pkg: pkg,
+                icon: icon.startsWith('fa-') ? icon : 'fa-mobile-screen',
+                blocked: true,
+                category: '사용자 추가',
+                granularRule: 'full'
+            };
+
+            state.apps.unshift(newApp);
+            renderApps();
+            closeAddAppModal();
+            showToast(`'${name}' 앱이 차단 목록에 추가되었습니다.`);
+        }
+
+        // Logs & Stats
+        function renderLogs() {
+            const container = document.getElementById('logListContainer');
+            container.innerHTML = state.logs.map(log => `
+                <div class="flex items-start space-x-3 p-3 rounded-2xl bg-slate-50/60 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 flex items-center justify-center text-xs flex-shrink-0 mt-0.5">
+                        <i class="fa-solid ${log.type === 'block' ? 'fa-ban text-rose-500' : 'fa-check text-emerald-500'}"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between">
+                            <h5 class="font-semibold text-xs truncate">${log.title}</h5>
+                            <span class="text-[10px] text-slate-400">${log.time}</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">${log.detail}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addLog(type, title, detail, color) {
+            state.logs.unshift({
+                id: Date.now(),
+                type: type,
+                title: title,
+                time: '방금 전',
+                detail: detail
+            });
+            renderLogs();
+        }
+
+        function clearLogs() {
+            state.logs = [];
+            renderLogs();
+            showToast('모든 로그가 초기화되었습니다.');
+        }
+
+        function updateStatsUI() {
+            const hours = Math.floor(state.stats.totalMinutes / 60);
+            const mins = state.stats.totalMinutes % 60;
+            document.getElementById('statTotalFocus').textContent = hours > 0 ? `${hours}시간 ${mins}분` : `${mins}분`;
+            document.getElementById('statBlockCount').textContent = `${state.stats.blockCount}회`;
+        }
+
+        // Toast Notification
+        function showToast(message) {
+            const toast = document.getElementById('toastNotification');
+            document.getElementById('toastMessage').textContent = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
